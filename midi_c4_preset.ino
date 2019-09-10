@@ -3,7 +3,7 @@
 
 const int BUTTON_UP = 2;
 const int BUTTON_DOWN = 3;
-const int BUTTON_DEBOUNCE = 20;
+const int BUTTON_DEBOUNCE = 120;
 
 const int LCD_DIO = 4;
 const int LCD_CLK = 5;
@@ -11,7 +11,7 @@ const int LCD_CLK = 5;
 const int CHANNEL_DIP = 4;
 const int DIP_DEBOUNCE = 5000; // 5s in between reading dip
 const int DIP[CHANNEL_DIP] = { 6, 7, 8, 9 };
-const bool dipValues[CHANNEL_DIP];
+const bool dipValues[CHANNEL_DIP] = { 0, 0, 0, 0 };
 
 volatile int channel = 0; // maybe this is 1?
 volatile int commandCode = 104; // 103 sends disabled
@@ -26,6 +26,8 @@ volatile long displayTime = 0;
 TM1637Display display(LCD_CLK, LCD_DIO);
 
 void changePreset(int value) {
+  preset = value;
+  
   USBMIDI.write(0xB0 | (channel & 0xf));
   USBMIDI.write(commandCode & 0x7f);
   USBMIDI.write(value & 0x7f);
@@ -69,7 +71,7 @@ int getNewPreset(bool up) {
 }
 
 bool getValue(int pin) {
-  return digitalRead(pin) == 0;
+  return digitalRead(pin) == LOW;
 }
 
 void readButtons() {
@@ -90,7 +92,7 @@ void readButtons() {
     newPreset = getNewPreset(false);
   }
 
-  if (prevPreset != newPreset) {
+  if ((upPressed || downPressed) && prevPreset != newPreset) {
     changePreset(newPreset);
   }
 
@@ -118,6 +120,13 @@ void updateDisplay() {
 }
 
 void setup() {
+  pinMode(BUTTON_UP, INPUT_PULLUP);
+  pinMode(BUTTON_DOWN, INPUT_PULLUP);
+
+  for (int i = 0; i < CHANNEL_DIP; i++) {
+    pinMode(DIP[i], INPUT_PULLUP);
+  }
+  
   channel = getChannel();
 
   display.clear();
@@ -137,3 +146,4 @@ void loop() {
 
   USBMIDI.flush();
 }
+
