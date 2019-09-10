@@ -6,10 +6,20 @@ Intended for use with the [Source Audio C4 Synth](https://www.sourceaudio.net/c4
 
 ## Requirements
 
+### Hardware
+
 - Arduino Pro Micro (or other 32u4 chip)
 - TM1637 7-segment display
 - 4 position DIP switch
 - 2x momentary buttons
+- 1590A case (or similar)
+
+### Software
+
+- https://github.com/avishorp/TM1637
+- https://github.com/BlokasLabs/USBMIDI
+
+---
 
 ## Pin Assignments
 
@@ -21,4 +31,4 @@ Intended for use with the [Source Audio C4 Synth](https://www.sourceaudio.net/c4
 
 ---
 
-Prompted by [a discussion at The Gear Page](https://www.thegearpage.net/board/index.php?threads/source-audio-c4-homebrew-arduino-midi-controller.2078129).
+Prompted by [a discussion at The Gear Page](https://www.thegearpage.net/board/index.php?threads/source-audio-c4-homebrew-arduino-midi-controller.2078129). Thanks to user morrissey007 for the motivation. :)
