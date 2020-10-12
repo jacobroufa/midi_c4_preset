@@ -1,171 +1,65 @@
-#include <TM1637Display.h> // https://github.com/avishorp/TM1637
-#include <usbh_midi.h> // https://github.com/gdsports/USB_Host_Library_SAMD
+/**
+ * Button layout:
+ * |-------|
+ * |   0   |
+ * | 1   2 |
+ * |-------|
+ *
+ * Settings:
+ * - midi channel: 0-15
+ * - tap button: 0-2
+ * - favorites: 0-127[]
+ * - expression cc: 0-127
+ */
+#include <vector>
+#include "button.h"
 
-#ifdef ADAFRUIT_TRINKET_M0
-// setup Dotstar LED on Trinket M0
-#include <Adafruit_DotStar.h> // https://github.com/adafruit/Adafruit_DotStar
-#define DATAPIN 7
-#define CLOCKPIN 8
-Adafruit_DotStar strip = Adafruit_DotStar(1, DATAPIN, CLOCKPIN, DOTSTAR_BRG);
-#endif
+const string MODE_0 = "FAVORITES"; // all three buttons map to preset favorites
+const string MODE_1 = "FAV_TAP"; // buttons 0 and 1 map to preset favorites; button 2 is tap
+const string MODE_2 = "PRESET_TAP"; // buttons 0 and 1 scroll through presets; button 2 is tap
+const string MODE_3 = "SETTINGS": // set midi channel, tap button, presets, expression cc
 
-USBHost usb;
-USBH_MIDI Midi(&usb);
+const int BUTTON_0 = 0;
+const int BUTTON_1 = 1;
+const int BUTTON_2 = 2;
 
-const int BUTTON_UP = 0;
-const int BUTTON_DOWN = 1;
-const int BUTTON_DEBOUNCE = 140; // Any shorter and we get double-presses. Any longer it's sluggish feeling...
-const int CHANNEL_DEBOUNCE = 1200; // Show "ch00" on the screen for 1200ms
+const Button b0(BUTTON_0);
+const Button b1(BUTTON_1);
+const Button b2(BUTTON_2);
 
-volatile int channel = 0; // MIDI channel is 0/1 by default
-// volatile int commandCode = 103; // Bypass
-volatile int commandCode = 104; // Engaged
+void bf3_tap() { /** do something w/ 3 buttons tap */ };
+void bf3_hold() { /** do something w/ 3 buttons hold */ };
+const ButtonFns bf3{ bf3_tap, bf3_hold, std::vector<Button> {b0, b1, b2} };
 
-volatile int preset = 0; // Initial preset value
+void bf2a_tap() { /** do something w/ 2 buttons tap */ };
+void bf2a_hold() { /** do something w/ 2 buttons hold */ };
+const ButtonFns bf2a{ bf2a_tap, bf2a_hold, std::vector<Button> {b0, b1} };
 
-volatile long buttonTime = 0;
-volatile long displayTime = 0;
+void bf2b_tap() { /** do something w/ 2 buttons tap */ };
+void bf2b_hold() { /** do something w/ 2 buttons hold */ };
+const ButtonFns bf2b{ bf2b_tap, bf2b_hold, std::vector<Button> {b0, b2} };
 
-// instantiate display
-const int LCD_DIO = 2;
-const int LCD_CLK = 3;
-TM1637Display display(LCD_CLK, LCD_DIO);
+void bf2c_tap() { /** do something w/ 2 buttons tap */ };
+void bf2c_hold() { /** do something w/ 2 buttons hold */ };
+const ButtonFns bf2c{ bf2c_tap, bf2c_hold, std::vector<Button> {b1, b2} };
 
-void changePreset(int value) {
-  preset = value; // Set globally for display
-  uint8_t buf[3] = {
-    0xB0 | (channel & 0xf),
-    commandCode & 0x7f,
-    value & 0x7f
-  };
-  Midi.SendData(buf);
-}
+void bfa_tap() { /** do something w/ 1 buttons tap */ };
+void bfa_hold() { /** do something w/ 1 buttons hold */ };
+const ButtonFns bfa{ bfa_tap, bfa_hold, std::vector<Button> {b0} };
 
-int getNewValue(bool up, int max, int value) {
-  volatile int newValue = value;
+void bfb_tap() { /** do something w/ 1 buttons tap */ };
+void bfb_hold() { /** do something w/ 1 buttons hold */ };
+const ButtonFns bfb{ bfb_tap, bfb_hold, std::vector<Button> {b1} };
 
-  if (up) {
-    newValue += 1;
+void bfc_tap() { /** do something w/ 1 buttons tap */ };
+void bfc_hold() { /** do something w/ 1 buttons hold */ };
+const ButtonFns bfc{ bfc_tap, bfc_hold, std::vector<Button> {b2} };
 
-    if (newValue > max) {
-      return 0;
-    }
+const std::vector<ButtonFns> bcButtons { bf3, bf2a, bf2b, bf2c, bfa, bfb, bfc };
+ButtonController bc(bcButtons);
 
-    return newValue;
-  }
-
-  // else down
-  newValue -= 1;
-
-  if (newValue < 0) {
-    return max;
-  }
-
-  return newValue;
-}
-
-int getNewPreset(bool up) {
-  int max = 127;
-  return getNewValue(up, max, preset);
-}
-
-int getNewChannel() {
-  int max = 15;
-  return getNewValue(true, max, channel);
-}
-
-bool getValue(int pin) {
-  return digitalRead(pin) == LOW;
-}
-
-void showChannel() {
-  volatile int tens = 0;
-  volatile int ones = channel;
-
-  if (channel >= 10) {
-    tens = 1;
-    ones = channel - 10;
-  }
-  
-  uint8_t channelSeg[] = {
-    SEG_D | SEG_E | SEG_G, // "c"
-    SEG_C | SEG_E | SEG_F | SEG_G, // "h"
-    display.encodeDigit(tens),
-    display.encodeDigit(ones)
-  };
-
-  display.setSegments(channelSeg);
-  
-  delay(CHANNEL_DEBOUNCE);
-}
-
-void readButtons() {
-  if ((millis() - buttonTime) < BUTTON_DEBOUNCE) {
-    return;
-  }
-
-  int prevPreset = preset;
-  volatile int newPreset = preset;
-
-  bool upPressed = getValue(BUTTON_UP);
-  bool downPressed = getValue(BUTTON_DOWN);
-
-  if (upPressed && downPressed) {
-    // channel = getNewChannel(); // Uncomment this if we ever desire to change channel?
-    showChannel();
-  } else {
-    if (upPressed) {
-      newPreset = getNewPreset(true);
-    }
-    if (downPressed) {
-      newPreset = getNewPreset(false);
-    }
-  
-    if ((upPressed || downPressed) && prevPreset != newPreset) {
-      changePreset(newPreset);
-    }
-  }
-
-  buttonTime = millis();
-}
-
-void updateDisplay() {
-  if ((millis() - displayTime) < (BUTTON_DEBOUNCE * 2)) {
-    return;
-  }
-
-  display.showNumberDec(preset);
-
-  displayTime = millis();
-}
-
-void setup() {
-  // Turn off built-in RED LED
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, LOW);
-#ifdef ADAFRUIT_TRINKET_M0
-  // Turn off built-in Dotstar RGB LED
-  strip.begin();
-  strip.clear();
-  strip.show();
-#endif
-
-  usb.Init();
-
-  pinMode(BUTTON_UP, INPUT_PULLUP);
-  pinMode(BUTTON_DOWN, INPUT_PULLUP);
-
-  display.clear();
-  display.setBrightness(3);
-
-  showChannel();
-
-  delay(200);
-}
+void setup() {}
 
 void loop() {
-  usb.Task();
-
-  readButtons();
-  updateDisplay();
+  bc.loop();
 }
