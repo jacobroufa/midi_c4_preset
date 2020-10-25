@@ -1,16 +1,15 @@
 #ifndef button_h
 #define button_h
 
-#include <vector>
 #include <Arduino.h>
 
 class Button {
   public:
   	Button(int pin);
-  	bool isHolding();
-  	bool isLongPressed();
-  	bool isPressed();
-  	void loop();
+  	bool isHolding(void);
+  	bool isLongPressed(void);
+  	bool isPressed(void);
+  	void loop(void);
   private:
     int _debounce;
     int _threshold;
@@ -22,23 +21,25 @@ class Button {
     long _lastTap;
     int _state;
     int _prevState;
-    bool _isPressed();
+    bool _isPressed(void);
 };
 
-typedef struct ButtonFns {
-  void (* tap)();
-  void (* hold)();
-  std::vector<Button> buttons;
-} ButtonFns;
+class ButtonFns {
+  public:
+    ButtonFns(void (*)(), void (*)(), int, Button[]);
+    void (* tap)();
+    void (* hold)();
+    int buttonsLn;
+    Button *buttons;
+};
 
 class ButtonController {
   public:
-  	ButtonController(std::vector<ButtonFns> buttonFns);
-  	void loop();
+  	ButtonController(ButtonFns[], int);
+  	void loop(void);
   private:
-    int _debounce;
-    long _time;
-    std::vector<ButtonFns> _buttonFns;
+    int _buttonFnsLn;
+    ButtonFns *_buttonFns;
 };
 
 #endif
