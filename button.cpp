@@ -5,7 +5,7 @@ Button::Button(int pin) {
   _debounce = 20;
   _threshold = 1500;
   _longPressThreshold = 400;
-  _pressThreshold = 0;
+  _pressThreshold = 60;
   _state = HIGH;
   _prevState = HIGH;
   _pin = pin;
@@ -60,28 +60,37 @@ ButtonFns::ButtonFns(void (*_tap)(), void (*_hold)(), int _buttonsLn, Button _bu
 ButtonController::ButtonController(ButtonFns buttonFns[], int buttonFnsLn) {
   _buttonFnsLn = buttonFnsLn;
   _buttonFns = buttonFns;
+  _debounce = 20;
 }
 
 void ButtonController::loop(void) {
+  const long now = millis();
+
+  if ((now - _time) < _debounce) return;
+
+  _time = now;
+
   for (byte i = 0; i < _buttonFnsLn; i++) {
     ButtonFns *bf = &_buttonFns[i];
-    int hold = 0;
     int press = 0;
 
     for (byte j = 0; j < bf->buttonsLn; j++) {
       Button b = bf->buttons[j];
-      b.loop();
-      if (b.isLongPressed()) {
-        hold += 1;
-      } else if (b.isPressed()) {
+      if (b.isPressed()) {
         press += 1;
       }
     }
 
-    if (hold == bf->buttonsLn) {
-      bf->hold();
-    } else if (press == bf->buttonsLn) {
+    if (press == bf->buttonsLn) {
       bf->tap();
+    }
+
+    // if we have pressed a combination of buttons, skip to the end of the loop
+    if (bf->buttonsLn > 1 && press == bf->buttonsLn) {
+      i = _buttonFnsLn;
+      // delay iteration of next loop to prevent overpressing
+      delay(60);
+
     }
   }
 }
