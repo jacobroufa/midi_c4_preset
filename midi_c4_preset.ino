@@ -46,8 +46,6 @@ const int ENG_CC = 104;
 // leave this a const for now -- multi-channel device later
 const int CHANNEL = 0;
 
-volatile int _mode = 0;
-volatile int _lastMode = 0;
 volatile int _presetPage = 0;
 volatile int _lastPresetPage = 0;
 
@@ -113,90 +111,78 @@ void setPreset(int value) {
 void sendPresetCode(int value) {
   setPreset(value);
   lcd.clear();
-  lcd.setCursor(0, 0);
+  lcd.setCursor(6, 0);
   lcd.print("preset ");
-  lcd.print(value);
-  delay(400);
-  _updateDisplayByMode();
+  lcd.print(value + 1);
+  delay(300);
+  _updateDisplay();
 }
 
 void hold() {}
 
 void bfa_tap() {
-  if (_mode == 0) {
-    sendPresetCode(2 + (_presetPage * 4));
-  }
-  if (_mode == 1) {
-    sendPresetCode(3);
-  }
+  sendPresetCode(3 + (_presetPage * 4));
 };
 Button bfa_buttons[1] { b0 };
 ButtonFns bfa(bfa_tap, hold, 1, bfa_buttons);
 
 void bfb_tap() {
-  if (_mode == 0) {
-    sendPresetCode(3 + (_presetPage * 4));
-  }
-  if (_mode == 1) {
-    sendPresetCode(4);
-  }
+  sendPresetCode(4 + (_presetPage * 4));
 };
 Button bfb_buttons[1] { b1 };
 ButtonFns bfb{ bfb_tap, hold, 1, bfb_buttons };
 
 void bfc_tap() {
-  if (_mode == 0) {
-    _presetPage = getNewValue(false, 31, _presetPage);
-  }
-  if (_mode == 1) {
-    // tap
-  }
+  sendPresetCode(5 + (_presetPage * 4));
 };
 Button bfc_buttons[1] { b2 };
 ButtonFns bfc{ bfc_tap, hold, 1, bfc_buttons };
 
 void bfd_tap() {
-  if (_mode == 0) {
-    sendPresetCode(0 + (_presetPage * 4));
-  }
-  if (_mode == 1) {
-    sendPresetCode(0);
-  }
+  sendPresetCode(0 + (_presetPage * 4));
 };
 Button bfd_buttons[1] { b3 };
 ButtonFns bfd{ bfd_tap, hold, 1, bfd_buttons };
 
 void bfe_tap() {
-  if (_mode == 0) {
-    sendPresetCode(1 + (_presetPage * 4));
-  }
-  if (_mode == 1) {
-    sendPresetCode(1);
-  }
+  sendPresetCode(1 + (_presetPage * 4));
 };
 Button bfe_buttons[1] { b4 };
 ButtonFns bfe{ bfe_tap, hold, 1, bfe_buttons };
 
 void bff_tap() {
-  if (_mode == 0) {
-    _presetPage = getNewValue(true, 31, _presetPage);
-  }
-  if (_mode == 1) {
-    sendPresetCode(2);
-  }
+  sendPresetCode(2 + (_presetPage * 4));
 };
 Button bff_buttons[1] { b5 };
 ButtonFns bff{ bff_tap, hold, 1, bff_buttons };
 
-void bf2l_tap() {
-  _mode = getNewValue(true, 1, _mode);
-};
-Button bf2l_buttons[2] { b0, b3 };
-ButtonFns bf2l{ bf2l_tap, hold, 2, bf2l_buttons };
+void displayPageChange(String value) {
+  lcd.clear();
+  lcd.setCursor(6, 0);
+  lcd.print(value);
+  delay(300);
+}
 
-ButtonFns bcButtons[7] { bf2l, bfa, bfb, bfc, bfd, bfe, bff };
+// page down
+void bfab_tap() {
+    _presetPage = getNewValue(false, 31, _presetPage);
+    displayPageChange("page dn");
+};
+Button bfab_buttons[2] { b0, b1 };
+ButtonFns bfab{ bfab_tap, hold, 2, bfab_buttons };
+
+// page up
+void bfbc_tap() {
+    _presetPage = getNewValue(true, 31, _presetPage);
+    displayPageChange("page up");
+};
+Button bfbc_buttons[2] { b1, b2 };
+ButtonFns bfbc{ bfbc_tap, hold, 2, bfbc_buttons };
+
+ButtonFns bcButtons[6] { bfa, bfb, bfc, bfd, bfe, bff };
+ButtonFns bcChords[2] { bfab, bfbc };
 // initialize button controller
-ButtonController bc(bcButtons, 7);
+ButtonController bc(bcButtons, 6, bcChords, 2);
 
 void displayPresetScroll() {
   lcd.clear();
@@ -205,57 +191,25 @@ void displayPresetScroll() {
   lcd.print((_presetPage * 4) + 1); // 0*4 + 1 = 1, 1*4 + 1 = 5, etc
   lcd.setCursor(9, 0);
   lcd.print((_presetPage * 4) + 2); // 0*4 + 2 = 2, 1*4 + 2 = 6, etc
-  lcd.setCursor(0, 1);
+  lcd.setCursor(17, 0);
   lcd.print((_presetPage * 4) + 3); // 0*4 + 3 = 3, 1*4 + 3 = 7, etc
-  lcd.setCursor(9, 1);
-  lcd.print((_presetPage * 4) + 4); // 0*4 + 4 = 4, 1*4 + 4 = 8, etc
-
-  lcd.setCursor(18, 0);
-  lcd.print("UP");
-  lcd.setCursor(16, 1);
-  lcd.print("DOWN");
-}
-
-void displayPresetTap() {
-  lcd.clear();
-
-  lcd.setCursor(0, 0);
-  lcd.print((_presetPage * 5) + 1); // 0*5 + 1 = 1, 1*5 + 1 = 6, etc
-  lcd.setCursor(9, 0);
-  lcd.print((_presetPage * 5) + 2); // 0*5 + 2 = 2, 1*5 + 2 = 7, etc
-  lcd.setCursor(18, 0);
-  lcd.print((_presetPage * 5) + 3); // 0*5 + 3 = 3, 1*5 + 3 = 8, etc
   lcd.setCursor(0, 1);
-  lcd.print((_presetPage * 5) + 4); // 0*5 + 4 = 4, 1*5 + 4 = 9, etc
+  lcd.print((_presetPage * 4) + 4); // 0*4 + 4 = 4, 1*4 + 4 = 8, etc
   lcd.setCursor(9, 1);
-  lcd.print((_presetPage * 5) + 5); // 0*5 + 5 = 5, 1*5 + 5 = 10, etc
-
+  lcd.print((_presetPage * 4) + 5); // 0*4 + 5 = 5, 1*4 + 5 = 9, etc
   lcd.setCursor(17, 1);
-  lcd.print("TAP");
+  lcd.print((_presetPage * 4) + 6); // 0*4 + 6 = 6, 1*4 + 6 = 10, etc
 }
 
-void _updateDisplayByMode() {
-  if (_mode == 0) {
-    displayPresetScroll();
-  }
-  if (_mode == 1) {
-    displayPresetTap();
-  }
+void _updateDisplay() {
+  displayPresetScroll();
 }
 
 void updateDisplay() {
-  if (_mode != _lastMode) {
-    _presetPage = 0;
-    _lastPresetPage = 0;
-    _lastMode = _mode;
-
-    _updateDisplayByMode();
-  }
-
   if (_presetPage != _lastPresetPage) {
     _lastPresetPage = _presetPage;
 
-    _updateDisplayByMode();
+    _updateDisplay();
   }
 }
 
@@ -283,14 +237,14 @@ void setup() {
 void loop() {
   usb.Task();
 
-  // run button controller
-  bc.loop();
   // run button loops
   for (byte i = 0; i < 7; i++) {
     for (byte j = 0; j < bcButtons[i].buttonsLn; j++) {
       bcButtons[i].buttons[j].loop();
     }
   }
+  // run button controller
+  bc.loop();
   // set expression values
   setExp();
   // update display when necessary

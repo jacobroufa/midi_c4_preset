@@ -57,10 +57,12 @@ ButtonFns::ButtonFns(void (*_tap)(), void (*_hold)(), int _buttonsLn, Button _bu
   buttons = _buttons;
 }
 
-ButtonController::ButtonController(ButtonFns buttonFns[], int buttonFnsLn) {
+ButtonController::ButtonController(ButtonFns buttonFns[], int buttonFnsLn, ButtonFns twoButtonFns[], int twoButtonFnsLn) {
   _buttonFnsLn = buttonFnsLn;
   _buttonFns = buttonFns;
-  _debounce = 20;
+  _twoButtonFnsLn = twoButtonFnsLn;
+  _twoButtonFns = twoButtonFns;
+  _debounce = 40;
 }
 
 void ButtonController::loop(void) {
@@ -70,8 +72,10 @@ void ButtonController::loop(void) {
 
   _time = now;
 
-  for (byte i = 0; i < _buttonFnsLn; i++) {
-    ButtonFns *bf = &_buttonFns[i];
+  volatile bool _dualPress = false;
+
+  for (byte i = 0; i < _twoButtonFnsLn; i++) {
+    ButtonFns *bf = &_twoButtonFns[i];
     int press = 0;
 
     for (byte j = 0; j < bf->buttonsLn; j++) {
@@ -81,15 +85,18 @@ void ButtonController::loop(void) {
     }
 
     if (press == bf->buttonsLn) {
+      _dualPress = true;
       bf->tap();
     }
+  }
 
-    // if we have pressed a combination of buttons, skip to the end of the loop
-    if (bf->buttonsLn > 1 && press == bf->buttonsLn) {
-      i = _buttonFnsLn;
-      // delay iteration of next loop to prevent overpressing
-      delay(60);
+  if (!_dualPress) {
+    for (byte i = 0; i < _buttonFnsLn; i++) {
+      ButtonFns *bf = &_buttonFns[i];
 
+      if (bf->buttonsLn == 1 && bf->buttons[0].isPressed()) {
+        bf->tap();
+      }
     }
   }
 }

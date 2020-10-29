@@ -35,13 +35,15 @@ class ButtonFns {
 
 class ButtonController {
   public:
-    ButtonController(ButtonFns[], int);
+    ButtonController(ButtonFns[], int, ButtonFns[], int);
     void loop(void);
   private:
     int _debounce;
     long _time;
     int _buttonFnsLn;
+    int _twoButtonFnsLn;
     ButtonFns *_buttonFns;
+    ButtonFns *_twoButtonFns;
 };
 
 #endif
