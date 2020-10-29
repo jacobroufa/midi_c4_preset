@@ -15,6 +15,10 @@
 #include <Wire.h> // I2C communication
 #include <LiquidCrystal_I2C.h> // LCD
 #include <Adafruit_DotStar.h> // https://github.com/adafruit/Adafruit_DotStar
+#include <usbh_midi.h> // https://github.com/gdsports/USB_Host_Library_SAMD
+
+USBHost usb;
+USBH_MIDI Midi(&usb);
 
 #define DATAPIN 41
 #define CLOCKPIN 40
@@ -32,7 +36,15 @@ const int BTN_2 = 2; // lower right
 const int BTN_3 = 10; // upper left
 const int BTN_4 = 9; // upper middle
 const int BTN_5 = 7; // upper right
-// const int EXP_0 = A1; // expression
+const int EXP_0 = A1; // expression
+
+const int TAP_CC = 93;
+const int EXP_CC = 100;
+const int BYP_CC = 103;
+const int ENG_CC = 104;
+
+// leave this a const for now -- multi-channel device later
+const int CHANNEL = 0;
 
 volatile int _mode = 0;
 volatile int _lastMode = 0;
@@ -61,12 +73,50 @@ int getNewValue(bool up, int max, int value) {
   return (newValue < 0) ? max : newValue;
 }
 
-void sendPresetCode(int val) {
+void sendMidi(int cc, int value) {
+  uint8_t buf[3] = {
+    0xB0 | (CHANNEL & 0xf),
+    cc & 0x7f,
+    value & 0x7f
+  };
+  Midi.SendData(buf);
+}
+
+volatile long _expTime;
+volatile int _oldExpVal;
+const int _expDebounce = 20;
+void setExp() {
+  const long now = millis();
+  if ((now - _expTime) < _expDebounce) return;
+  _expTime = now;
+
+  // get the value from the expression input
+  volatile int value = analogRead(EXP_0);
+  // limit input outside this range
+  value = constrain(value, 5, 1000);
+  // convert it for MIDI values 0-127
+  value = map(value, 5, 1000, 0, 127);
+
+  // only send if we haven't yet
+  if (value != _oldExpVal) {
+    // cache value
+    _oldExpVal = value;
+    // send that value over the wire
+    sendMidi(EXP_CC, value);
+  }
+}
+
+void setPreset(int value) {
+  sendMidi(BYP_CC, value);
+}
+
+void sendPresetCode(int value) {
+  setPreset(value);
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print("sending code ");
-  lcd.print(val);
-  delay(800);
+  lcd.print("preset ");
+  lcd.print(value);
+  delay(400);
   _updateDisplayByMode();
 }
 
@@ -212,6 +262,9 @@ void updateDisplay() {
 void setup() {
   // Serial.begin(9600);
 
+  // initialize usb host
+  usb.Init();
+
   // turn off onboard rgb led
   dotstar.begin();
   dotstar.clear();
@@ -228,6 +281,8 @@ void setup() {
 }
 
 void loop() {
+  usb.Task();
+
   // run button controller
   bc.loop();
   // run button loops
@@ -236,6 +291,8 @@ void loop() {
       bcButtons[i].buttons[j].loop();
     }
   }
+  // set expression values
+  setExp();
   // update display when necessary
   updateDisplay();
 }

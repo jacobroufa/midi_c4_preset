@@ -75,8 +75,7 @@ void ButtonController::loop(void) {
     int press = 0;
 
     for (byte j = 0; j < bf->buttonsLn; j++) {
-      Button b = bf->buttons[j];
-      if (b.isPressed()) {
+      if (bf->buttons[j].isPressed()) {
         press += 1;
       }
     }
