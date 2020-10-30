@@ -9,6 +9,8 @@ class Button {
   	bool isHolding(void);
   	bool isLongPressed(void);
   	bool isPressed(void);
+    bool getPressed(void);
+    void setPressed(bool);
   	void loop(void);
   private:
     int _debounce;
@@ -21,6 +23,7 @@ class Button {
     long _lastTap;
     int _state;
     int _prevState;
+    bool _pressed;
     bool _isPressed(void);
 };
 

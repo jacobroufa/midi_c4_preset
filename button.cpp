@@ -9,6 +9,7 @@ Button::Button(int pin) {
   _state = HIGH;
   _prevState = HIGH;
   _pin = pin;
+  _pressed = false;
   pinMode(pin, INPUT_PULLUP);
 }
 
@@ -22,6 +23,14 @@ bool Button::isLongPressed(void) {
 
 bool Button::isPressed(void) {
   return _isPressed() && _holdTime >= _pressThreshold;
+}
+
+bool Button::getPressed(void) {
+  return _pressed;
+}
+
+void Button::setPressed(bool pressed) {
+  _pressed = pressed;
 }
 
 void Button::loop(void) {
@@ -65,9 +74,7 @@ ButtonController::ButtonController(ButtonFns buttonFns[], int buttonFnsLn) {
 
 void ButtonController::loop(void) {
   const long now = millis();
-
   if ((now - _time) < _debounce) return;
-
   _time = now;
 
   for (byte i = 0; i < _buttonFnsLn; i++) {
@@ -75,21 +82,27 @@ void ButtonController::loop(void) {
     int press = 0;
 
     for (byte j = 0; j < bf->buttonsLn; j++) {
-      if (bf->buttons[j].isPressed()) {
-        press += 1;
+      Button *b = &bf->buttons[j];
+      if (b->isPressed()) {
+        // if we haven't already pressed
+        if (!b->getPressed()) {
+          press += 1;
+          b->setPressed(true);
+        }
+      } else {
+        b->setPressed(false);
       }
     }
 
     if (press == bf->buttonsLn) {
       bf->tap();
-    }
 
-    // if we have pressed a combination of buttons, skip to the end of the loop
-    if (bf->buttonsLn > 1 && press == bf->buttonsLn) {
-      i = _buttonFnsLn;
-      // delay iteration of next loop to prevent overpressing
-      delay(60);
-
+      // if we have pressed a combination of buttons, skip to the end of the loop
+      if (bf->buttonsLn > 1) {
+        // delay iteration of next loop to prevent overpressing
+        delay(80);
+        return;
+      }
     }
   }
 }
