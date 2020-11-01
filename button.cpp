@@ -86,9 +86,9 @@ void ButtonController::loop(void) {
       if (b->isPressed()) {
         // if we haven't already pressed
         if (!b->getPressed()) {
-          press += 1;
           b->setPressed(true);
         }
+        press += 1;
       } else {
         b->setPressed(false);
       }
@@ -100,7 +100,7 @@ void ButtonController::loop(void) {
       // if we have pressed a combination of buttons, skip to the end of the loop
       if (bf->buttonsLn > 1) {
         // delay iteration of next loop to prevent overpressing
-        delay(80);
+        delay(200);
         return;
       }
     }
