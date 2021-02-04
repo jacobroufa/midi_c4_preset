@@ -87,22 +87,22 @@ void ButtonController::loop(void) {
         // if we haven't already pressed
         if (!b->getPressed()) {
           b->setPressed(true);
+          press += 1;
         }
-        press += 1;
       } else {
         b->setPressed(false);
       }
     }
 
     if (press == bf->buttonsLn) {
-      bf->tap();
-
       // if we have pressed a combination of buttons, skip to the end of the loop
       if (bf->buttonsLn > 1) {
-        // delay iteration of next loop to prevent overpressing
-        delay(200);
+        bf->tap(); // tap multi-button
+        // delay(300); // delay iteration of next loop to prevent overpressing
         return;
       }
+
+      bf->tap(); // else tap single button
     }
   }
 }
