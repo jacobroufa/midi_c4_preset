@@ -60,7 +60,7 @@ ButtonFns::ButtonFns(void (*_tap)(), void (*_hold)(), int _buttonsLn, Button _bu
 ButtonController::ButtonController(ButtonFns buttonFns[], int buttonFnsLn) {
   _buttonFnsLn = buttonFnsLn;
   _buttonFns = buttonFns;
-  _debounce = 20;
+  _debounce = 80;
 }
 
 void ButtonController::loop(void) {
@@ -76,21 +76,21 @@ void ButtonController::loop(void) {
 
     for (byte j = 0; j < bf->buttonsLn; j++) {
       Button b = bf->buttons[j];
-      if (b.isPressed()) {
+      if (b.isPressed() && !b.isLongPressed() && !b.isHolding()) {
         press += 1;
       }
     }
 
     if (press == bf->buttonsLn) {
       bf->tap();
-    }
 
-    // if we have pressed a combination of buttons, skip to the end of the loop
-    if (bf->buttonsLn > 1 && press == bf->buttonsLn) {
-      i = _buttonFnsLn;
-      // delay iteration of next loop to prevent overpressing
-      delay(60);
+      // if we have pressed a combination of buttons, skip to the end of the loop
+      if (bf->buttonsLn > 1) {
+        i = _buttonFnsLn;
+        // delay iteration of next loop to prevent overpressing
+        delay(60);
 
+      }
     }
   }
 }

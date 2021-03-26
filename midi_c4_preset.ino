@@ -34,8 +34,6 @@ const int BTN_4 = 9; // upper middle
 const int BTN_5 = 7; // upper right
 // const int EXP_0 = A1; // expression
 
-volatile int _mode = 0;
-volatile int _lastMode = 0;
 volatile int _presetPage = 0;
 volatile int _lastPresetPage = 0;
 
@@ -64,89 +62,53 @@ int getNewValue(bool up, int max, int value) {
 void sendPresetCode(int val) {
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print("sending code ");
-  lcd.print(val);
-  delay(800);
-  _updateDisplayByMode();
+  lcd.print("setting preset ");
+  lcd.print(val + 1);
+  delay(600);
+  displayPresetScroll();
 }
 
 void hold() {}
 
 void bfa_tap() {
-  if (_mode == 0) {
-    sendPresetCode(2 + (_presetPage * 4));
-  }
-  if (_mode == 1) {
-    sendPresetCode(3);
-  }
+  sendPresetCode(2 + (_presetPage * 4));
 };
 Button bfa_buttons[1] { b0 };
 ButtonFns bfa(bfa_tap, hold, 1, bfa_buttons);
 
 void bfb_tap() {
-  if (_mode == 0) {
-    sendPresetCode(3 + (_presetPage * 4));
-  }
-  if (_mode == 1) {
-    sendPresetCode(4);
-  }
+  sendPresetCode(3 + (_presetPage * 4));
 };
 Button bfb_buttons[1] { b1 };
 ButtonFns bfb{ bfb_tap, hold, 1, bfb_buttons };
 
 void bfc_tap() {
-  if (_mode == 0) {
-    _presetPage = getNewValue(false, 31, _presetPage);
-  }
-  if (_mode == 1) {
-    // tap
-  }
+  _presetPage = getNewValue(false, 31, _presetPage);
 };
 Button bfc_buttons[1] { b2 };
 ButtonFns bfc{ bfc_tap, hold, 1, bfc_buttons };
 
 void bfd_tap() {
-  if (_mode == 0) {
-    sendPresetCode(0 + (_presetPage * 4));
-  }
-  if (_mode == 1) {
-    sendPresetCode(0);
-  }
+  sendPresetCode(0 + (_presetPage * 4));
 };
 Button bfd_buttons[1] { b3 };
 ButtonFns bfd{ bfd_tap, hold, 1, bfd_buttons };
 
 void bfe_tap() {
-  if (_mode == 0) {
-    sendPresetCode(1 + (_presetPage * 4));
-  }
-  if (_mode == 1) {
-    sendPresetCode(1);
-  }
+  sendPresetCode(1 + (_presetPage * 4));
 };
 Button bfe_buttons[1] { b4 };
 ButtonFns bfe{ bfe_tap, hold, 1, bfe_buttons };
 
 void bff_tap() {
-  if (_mode == 0) {
-    _presetPage = getNewValue(true, 31, _presetPage);
-  }
-  if (_mode == 1) {
-    sendPresetCode(2);
-  }
+  _presetPage = getNewValue(true, 31, _presetPage);
 };
 Button bff_buttons[1] { b5 };
 ButtonFns bff{ bff_tap, hold, 1, bff_buttons };
 
-void bf2l_tap() {
-  _mode = getNewValue(true, 1, _mode);
-};
-Button bf2l_buttons[2] { b0, b3 };
-ButtonFns bf2l{ bf2l_tap, hold, 2, bf2l_buttons };
-
-ButtonFns bcButtons[7] { bf2l, bfa, bfb, bfc, bfd, bfe, bff };
+ButtonFns bcButtons[6] { bfa, bfb, bfc, bfd, bfe, bff };
 // initialize button controller
-ButtonController bc(bcButtons, 7);
+ButtonController bc(bcButtons, 6);
 
 void displayPresetScroll() {
   lcd.clear();
@@ -166,46 +128,11 @@ void displayPresetScroll() {
   lcd.print("DOWN");
 }
 
-void displayPresetTap() {
-  lcd.clear();
-
-  lcd.setCursor(0, 0);
-  lcd.print((_presetPage * 5) + 1); // 0*5 + 1 = 1, 1*5 + 1 = 6, etc
-  lcd.setCursor(9, 0);
-  lcd.print((_presetPage * 5) + 2); // 0*5 + 2 = 2, 1*5 + 2 = 7, etc
-  lcd.setCursor(18, 0);
-  lcd.print((_presetPage * 5) + 3); // 0*5 + 3 = 3, 1*5 + 3 = 8, etc
-  lcd.setCursor(0, 1);
-  lcd.print((_presetPage * 5) + 4); // 0*5 + 4 = 4, 1*5 + 4 = 9, etc
-  lcd.setCursor(9, 1);
-  lcd.print((_presetPage * 5) + 5); // 0*5 + 5 = 5, 1*5 + 5 = 10, etc
-
-  lcd.setCursor(17, 1);
-  lcd.print("TAP");
-}
-
-void _updateDisplayByMode() {
-  if (_mode == 0) {
-    displayPresetScroll();
-  }
-  if (_mode == 1) {
-    displayPresetTap();
-  }
-}
-
 void updateDisplay() {
-  if (_mode != _lastMode) {
-    _presetPage = 0;
-    _lastPresetPage = 0;
-    _lastMode = _mode;
-
-    _updateDisplayByMode();
-  }
-
   if (_presetPage != _lastPresetPage) {
     _lastPresetPage = _presetPage;
 
-    _updateDisplayByMode();
+    displayPresetScroll();
   }
 }
 
@@ -231,7 +158,7 @@ void loop() {
   // run button controller
   bc.loop();
   // run button loops
-  for (byte i = 0; i < 7; i++) {
+  for (byte i = 0; i < 6; i++) {
     for (byte j = 0; j < bcButtons[i].buttonsLn; j++) {
       bcButtons[i].buttons[j].loop();
     }
